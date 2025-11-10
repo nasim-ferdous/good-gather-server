@@ -8,8 +8,6 @@ const port = process.env.PORT || 3000;
 // middleware
 app.use(cors());
 app.use(express.json());
-// password= AdZXaZsB6XGSfnxR
-// user = good-gatherdb
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.picyulc.mongodb.net/?appName=Cluster0`;
 
@@ -21,12 +19,18 @@ const client = new MongoClient(uri, {
   },
 });
 
-app.get("/", (req, res) => {
-  res.send("Good Gather server is running");
-});
 async function run() {
   try {
     await client.connect();
+
+    const db = client.db("good-gatherdb");
+    const eventCollection = db.collection("events");
+
+    app.get("/events", async (req, res) => {
+      const cursor = eventCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -36,6 +40,10 @@ async function run() {
   }
 }
 run().catch(console.dir);
+
+app.get("/", (req, res) => {
+  res.send("Good Gather server is running");
+});
 
 app.listen(port, () => {
   console.log(`Good Gather app is listening on ${port}`);
