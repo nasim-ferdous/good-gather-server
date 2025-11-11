@@ -73,6 +73,19 @@ async function run() {
         result,
       });
     });
+    // my events
+    app.get("/my-events", async (req, res) => {
+      const email = req.query.email;
+      const result = await eventCollection
+        .find({
+          createdBy: email,
+        })
+        .toArray();
+      res.send({
+        success: true,
+        result,
+      });
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
