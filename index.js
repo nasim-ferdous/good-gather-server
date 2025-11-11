@@ -86,6 +86,32 @@ async function run() {
         result,
       });
     });
+    app.put("/events/:id", async (req, res) => {
+      const data = req.body;
+      const id = req.params.id;
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const update = {
+        $set: data,
+      };
+      const result = await eventCollection.updateOne(filter, update);
+
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
+    app.delete("/events/:id", async (req, res) => {
+      const { id } = req.params;
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const result = await eventCollection.deleteOne(filter);
+      res.send({
+        success: true,
+        result,
+      });
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
