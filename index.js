@@ -25,7 +25,8 @@ async function run() {
 
     const db = client.db("good-gatherdb");
     const eventCollection = db.collection("events");
-
+    const joinedCollection = db.collection("joined");
+    // events
     app.get("/events", async (req, res) => {
       const cursor = eventCollection.find();
       const result = await cursor.toArray();
@@ -44,8 +45,29 @@ async function run() {
 
     app.post("/events", async (req, res) => {
       const data = req.body;
-      console.log(data);
       const result = await eventCollection.insertOne(data);
+      res.send({
+        success: true,
+        result,
+      });
+    });
+    // joined
+
+    app.get("/joined", async (req, res) => {
+      const cursor = joinedCollection.find().sort({
+        eventDate: 1,
+      });
+      const result = await cursor.toArray();
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
+    app.post("/joined", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await joinedCollection.insertOne(data);
       res.send({
         success: true,
         result,
