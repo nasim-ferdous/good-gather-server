@@ -31,6 +31,15 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+    app.post("/events", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await eventCollection.insertOne(data);
+      res.send({
+        success: true,
+        result,
+      });
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
