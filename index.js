@@ -98,11 +98,21 @@ async function run() {
 
     app.post("/joined", async (req, res) => {
       const data = req.body;
-      const result = await joinedCollection.insertOne(data);
-      res.send({
-        success: true,
-        result,
-      });
+      const isExist = await joinedCollection.findOne({ eventId: data.eventId });
+      if (isExist) {
+        res.send({
+          success: false,
+          message: "Already joined this event",
+        });
+      } else {
+        const result = await joinedCollection.insertOne(data);
+        console.log(result);
+
+        res.send({
+          success: true,
+          result,
+        });
+      }
     });
     // my events
     app.get("/my-events", verifyToken, async (req, res) => {
@@ -135,6 +145,36 @@ async function run() {
         success: true,
         result,
       });
+    });
+    app.get("/search", async (req, res) => {
+      const search_text = req.query.search;
+      const result = await eventCollection
+        .find({ title: { $regex: search_text, $options: "i" } })
+        .toArray();
+      res.send({
+        success: true,
+        result,
+      });
+    });
+    app.get("/filter", async (req, res) => {
+      try {
+        const { eventType } = req.query;
+        let query = {};
+
+        if (eventType && eventType.toLowerCase() !== "all") {
+          query.eventType = eventType;
+        }
+
+        const result = await eventCollection.find(query).toArray();
+
+        res.send({
+          success: true,
+          result,
+        });
+      } catch (error) {
+        console.error("Filter error:", error);
+        res.status(500).send({ message: "Failed to filter events" });
+      }
     });
 
     app.delete("/events/:id", async (req, res) => {
