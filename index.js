@@ -3,7 +3,13 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
+const admin = require("firebase-admin");
+const serviceAccount = require("./good-gather-firebase-adminsdk.json");
 const port = process.env.PORT || 3000;
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // middleware
 app.use(cors());
@@ -18,6 +24,32 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+const verifyToken = async (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({
+      message: "unauthorized access",
+    });
+  }
+  const token = authorization.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send({
+      message: "unauthorized access token",
+    });
+  }
+  try {
+    const decode = await admin.auth().verifyIdToken(token);
+    req.token_email = decode.email;
+
+    next();
+  } catch (error) {
+    res.status(401).send({
+      message: "unauthorized access",
+    });
+  }
+};
 
 async function run() {
   try {
@@ -53,7 +85,7 @@ async function run() {
     });
     // joined
 
-    app.get("/joined", async (req, res) => {
+    app.get("/joined", verifyToken, async (req, res) => {
       const cursor = joinedCollection.find().sort({
         eventDate: 1,
       });
@@ -66,7 +98,6 @@ async function run() {
 
     app.post("/joined", async (req, res) => {
       const data = req.body;
-      console.log(data);
       const result = await joinedCollection.insertOne(data);
       res.send({
         success: true,
@@ -74,13 +105,17 @@ async function run() {
       });
     });
     // my events
-    app.get("/my-events", async (req, res) => {
+    app.get("/my-events", verifyToken, async (req, res) => {
       const email = req.query.email;
-      const result = await eventCollection
-        .find({
-          createdBy: email,
-        })
-        .toArray();
+      const query = {};
+      if (email) {
+        if (email !== req.token_email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        query.createdBy = email;
+      }
+
+      const result = await eventCollection.find(query).toArray();
       res.send({
         success: true,
         result,
