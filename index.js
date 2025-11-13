@@ -53,7 +53,7 @@ const verifyToken = async (req, res, next) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     const db = client.db("good-gatherdb");
     const eventCollection = db.collection("events");
@@ -86,7 +86,15 @@ async function run() {
     // joined
 
     app.get("/joined", verifyToken, async (req, res) => {
-      const cursor = joinedCollection.find().sort({
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        if (email !== req.token_email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        query.joinedBy = email;
+      }
+      const cursor = joinedCollection.find(query).sort({
         eventDate: 1,
       });
       const result = await cursor.toArray();
@@ -188,7 +196,7 @@ async function run() {
       });
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
